@@ -1,5 +1,8 @@
 import { z } from 'zod';
 
+// Export auth types
+export * from './auth';
+
 // Base API Response Types
 export interface ApiResponse<T = any> {
   success: boolean;

@@ -1,46 +1,45 @@
-import express from 'express';
-import cors from 'cors';
-import helmet from 'helmet';
 import compression from 'compression';
-import morgan from 'morgan';
-import rateLimit from 'express-rate-limit';
+import cors from 'cors';
 import dotenv from 'dotenv';
-import { PrismaClient } from '@prisma/client';
+import express from 'express';
+import rateLimit from 'express-rate-limit';
+import helmet from 'helmet';
+import morgan from 'morgan';
 
 // Load environment variables
 dotenv.config();
 
 // Import routes
 import authRoutes from './routes/auth';
-import userRoutes from './routes/users';
+import companyRoutes from './routes/companies';
+import paymentRoutes from './routes/payments';
 import propertyRoutes from './routes/properties';
 import tenantRoutes from './routes/tenants';
-import paymentRoutes from './routes/payments';
-import companyRoutes from './routes/companies';
+import userRoutes from './routes/users';
 
 // Import middleware
 import { errorHandler } from './middleware/errorHandler';
 import { notFound } from './middleware/notFound';
 
-// Initialize Prisma client
-export const prisma = new PrismaClient();
+// Import Prisma client
+import { prisma } from './lib/prisma';
 
 const app = express();
-const PORT = process.env.PORT || 3001;
+const PORT = process.env['PORT'] || 3001;
 
 // Security middleware
 app.use(helmet());
 
 // CORS configuration
 app.use(cors({
-  origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
+  origin: process.env['CORS_ORIGIN'] || 'http://localhost:5173',
   credentials: true,
 }));
 
 // Rate limiting
 const limiter = rateLimit({
-  windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '900000'), // 15 minutes
-  max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '100'), // limit each IP to 100 requests per windowMs
+  windowMs: parseInt(process.env['RATE_LIMIT_WINDOW_MS'] || '900000'), // 15 minutes
+  max: parseInt(process.env['RATE_LIMIT_MAX_REQUESTS'] || '100'), // limit each IP to 100 requests per windowMs
   message: {
     success: false,
     error: {
@@ -59,24 +58,24 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(compression());
 
 // Logging middleware
-if (process.env.NODE_ENV === 'development') {
+if (process.env['NODE_ENV'] === 'development') {
   app.use(morgan('dev'));
 } else {
   app.use(morgan('combined'));
 }
 
 // Health check endpoint
-app.get('/health', (req, res) => {
+app.get('/health', (_req, res) => {
   res.json({
     success: true,
     message: 'PropEase API is running',
     timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV,
+    environment: process.env['NODE_ENV'],
   });
 });
 
 // API routes
-const apiVersion = process.env.API_VERSION || 'v1';
+const apiVersion = process.env['API_VERSION'] || 'v1';
 app.use(`/api/${apiVersion}/auth`, authRoutes);
 app.use(`/api/${apiVersion}/users`, userRoutes);
 app.use(`/api/${apiVersion}/properties`, propertyRoutes);
@@ -104,7 +103,7 @@ process.on('SIGINT', async () => {
 // Start server
 app.listen(PORT, () => {
   console.log(`🚀 PropEase API server running on port ${PORT}`);
-  console.log(`📊 Environment: ${process.env.NODE_ENV}`);
+  console.log(`📊 Environment: ${process.env['NODE_ENV']}`);
   console.log(`🔗 Health check: http://localhost:${PORT}/health`);
   console.log(`📚 API Documentation: http://localhost:${PORT}/api/${apiVersion}`);
 });
