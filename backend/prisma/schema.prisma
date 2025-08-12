@@ -11,121 +11,168 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  firstName String
-  lastName  String
-  password  String
-  role      UserRole @default(PROPERTY_MANAGER)
-  isActive  Boolean  @default(true)
-  companyId String?
-  company   Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id         String   @id @default(uuid())
+  email      String   @unique @db.VarChar(255)
+  first_name String   @db.VarChar(100)
+  last_name  String   @db.VarChar(100)
+  password   String   @db.VarChar(255)
+  role       UserRole @default(PROPERTY_MANAGER)
+  is_active  Boolean  @default(true)
+  company_id String?
+  company    Company? @relation(fields: [company_id], references: [id], onDelete: Cascade)
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
 
   // Relations
   refreshTokens RefreshToken[]
   passwordResetTokens PasswordResetToken[]
 
+
   @@map("users")
+  @@index([email])
+  @@index([company_id])
 }
 
 model Company {
-  id        String   @id @default(cuid())
-  name      String
-  address   Json     // Address object
-  phone     String
-  email     String
-  website   String?
-  logo      String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id         String   @id @default(uuid())
+  name       String   @db.VarChar(255)
+  address    Json     // Address object
+  phone      String   @db.VarChar(20)
+  email      String   @db.VarChar(255)
+  website    String?  @db.VarChar(255)
+  logo       String?  @db.VarChar(500)
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
 
   // Relations
   users      User[]
   properties Property[]
 
   @@map("companies")
+  @@index([email])
 }
 
 model Property {
-  id             String         @id @default(cuid())
-  name           String
-  address        Json           // Address object
-  propertyType   PropertyType
-  bedrooms       Int
-  bathrooms      Int
-  squareFootage  Int
-  rentAmount     Float
-  depositAmount  Float
-  status         PropertyStatus @default(AVAILABLE)
-  description    String?
-  photos         String[]       // Array of photo URLs
-  amenities      String[]       // Array of amenities
-  companyId      String
-  company        Company        @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  createdAt      DateTime       @default(now())
-  updatedAt      DateTime       @updatedAt
+  id              String         @id @default(uuid())
+  name            String         @db.VarChar(255)
+  address         Json           // Address object
+  property_type   PropertyType
+  bedrooms        Int
+  bathrooms       Int
+  square_footage  Int
+  rent_amount     Decimal        @db.Decimal(10, 2)
+  deposit_amount  Decimal        @db.Decimal(10, 2)
+  status          PropertyStatus @default(AVAILABLE)
+  description     String?        @db.Text
+  photos          String[]       // Array of photo URLs
+  amenities       String[]       // Array of amenities
+  company_id      String
+  company         Company        @relation(fields: [company_id], references: [id], onDelete: Cascade)
+  created_at      DateTime       @default(now())
+  updated_at      DateTime       @updatedAt
 
   // Relations
-  tenants  Tenant[]
-  payments Payment[]
+  tenants      Tenant[]
+  transactions Transaction[]
+  documents    Document[]
 
   @@map("properties")
+  @@index([company_id])
+  @@index([property_type])
+  @@index([status])
+  @@index([rent_amount])
 }
 
 model Tenant {
-  id              String       @id @default(cuid())
-  firstName       String
-  lastName        String
-  email           String
-  phone           String
-  dateOfBirth     DateTime
-  emergencyContact Json        // EmergencyContact object
-  propertyId      String
-  property        Property     @relation(fields: [propertyId], references: [id], onDelete: Cascade)
-  leaseStartDate  DateTime
-  leaseEndDate    DateTime
-  rentAmount      Float
-  depositAmount   Float
-  status          TenantStatus @default(PENDING)
-  createdAt       DateTime     @default(now())
-  updatedAt       DateTime     @updatedAt
+  id                String       @id @default(uuid())
+  first_name        String       @db.VarChar(100)
+  last_name         String       @db.VarChar(100)
+  email             String       @db.VarChar(255)
+  phone             String       @db.VarChar(20)
+  date_of_birth     DateTime
+  emergency_contact Json         // EmergencyContact object
+  property_id       String
+  property          Property     @relation(fields: [property_id], references: [id], onDelete: Cascade)
+  lease_start_date  DateTime
+  lease_end_date    DateTime
+  rent_amount       Decimal      @db.Decimal(10, 2)
+  deposit_amount    Decimal      @db.Decimal(10, 2)
+  status            TenantStatus @default(PENDING)
+  created_at        DateTime     @default(now())
+  updated_at        DateTime     @updatedAt
 
   // Relations
-  payments Payment[]
+  transactions Transaction[]
+  documents    Document[]
 
   @@map("tenants")
+  @@index([property_id])
+  @@index([email])
+  @@index([status])
+  @@index([lease_end_date])
 }
 
-model Payment {
-  id          String        @id @default(cuid())
-  tenantId    String
-  tenant      Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  propertyId  String
-  property    Property      @relation(fields: [propertyId], references: [id], onDelete: Cascade)
-  amount      Float
-  type        PaymentType
-  status      PaymentStatus @default(PENDING)
-  dueDate     DateTime
-  paidDate    DateTime?
-  description String?
-  stripePaymentId String?
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
+model Transaction {
+  id                String          @id @default(uuid())
+  tenant_id         String
+  tenant            Tenant          @relation(fields: [tenant_id], references: [id], onDelete: Cascade)
+  property_id       String
+  property          Property        @relation(fields: [property_id], references: [id], onDelete: Cascade)
+  amount            Decimal         @db.Decimal(10, 2)
+  type              TransactionType
+  status            TransactionStatus @default(PENDING)
+  due_date          DateTime
+  paid_date         DateTime?
+  description       String?         @db.VarChar(500)
+  stripe_payment_id String?         @db.VarChar(255)
+  created_at        DateTime        @default(now())
+  updated_at        DateTime        @updatedAt
 
-  @@map("payments")
+  @@map("transactions")
+  @@index([tenant_id])
+  @@index([property_id])
+  @@index([type])
+  @@index([status])
+  @@index([due_date])
+  @@index([stripe_payment_id])
+}
+
+model Document {
+  id          String   @id @default(uuid())
+  name        String   @db.VarChar(255)
+  file_name   String   @db.VarChar(255)
+  file_url    String   @db.VarChar(500)
+  file_size   Int
+  mime_type   String   @db.VarChar(100)
+  category    DocumentCategory
+  property_id String?
+  property    Property? @relation(fields: [property_id], references: [id], onDelete: Cascade)
+  tenant_id   String?
+  tenant      Tenant?   @relation(fields: [tenant_id], references: [id], onDelete: Cascade)
+  user_id     String
+  user        User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  @@map("documents")
+  @@index([property_id])
+  @@index([tenant_id])
+  @@index([user_id])
+  @@index([category])
+  @@index([created_at])
 }
 
 model RefreshToken {
-  id        String   @id @default(cuid())
-  token     String   @unique
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  expiresAt DateTime
-  createdAt DateTime @default(now())
+  id         String   @id @default(uuid())
+  token      String   @unique @db.VarChar(500)
+  user_id    String
+  user       User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  expires_at DateTime
+  created_at DateTime @default(now())
 
   @@map("refresh_tokens")
+  @@index([user_id])
+  @@index([expires_at])
 }
 
 model PasswordResetToken {
@@ -168,7 +215,7 @@ enum TenantStatus {
   EVICTED
 }
 
-enum PaymentType {
+enum TransactionType {
   RENT
   DEPOSIT
   LATE_FEE
@@ -176,9 +223,19 @@ enum PaymentType {
   OTHER
 }
 
-enum PaymentStatus {
+enum TransactionStatus {
   PENDING
   PAID
   OVERDUE
   CANCELLED
+}
+
+enum DocumentCategory {
+  LEASE_AGREEMENT
+  RENTAL_APPLICATION
+  MAINTENANCE_REQUEST
+  INVOICE
+  RECEIPT
+  PHOTO
+  OTHER
 }
